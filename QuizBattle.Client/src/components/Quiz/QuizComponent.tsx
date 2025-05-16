@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { QuestionDto } from '../../api/types/quiz';
 import QuestionCard from './QuestionCard';
 import QuizResults from './QuizResults';
@@ -7,16 +6,13 @@ import './QuizComponent.css';
 
 interface QuizComponentProps {
   questions: QuestionDto[];
-  quizId: string;
   quizTitle?: string;
 }
 
 const QuizComponent: React.FC<QuizComponentProps> = ({ 
-  questions, 
-  quizId,
+  questions,
   quizTitle = 'Quiz'
 }) => {
-  const navigate = useNavigate();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -63,17 +59,6 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
     } else {
       setQuizCompleted(true);
     }
-  };
-
-  const handleQuizComplete = () => {
-    navigate('/', {
-      state: {
-        fromQuiz: true,
-        quizId,
-        score,
-        totalQuestions: questions.length
-      }
-    });
   };
 
   if (quizCompleted) {
