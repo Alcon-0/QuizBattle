@@ -1,10 +1,12 @@
 using System;
 using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -14,6 +16,8 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        
         modelBuilder.Entity<Quiz>()
             .HasMany(q => q.Questions)
             .WithOne(q => q.Quiz)
@@ -32,5 +36,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AnswerOption>()
             .Property(o => o.Id)
             .ValueGeneratedNever();
+
+        modelBuilder.Entity<User>(entity =>
+            {
+                entity.Property(u => u.FirstName).HasMaxLength(50);
+                entity.Property(u => u.LastName).HasMaxLength(50);
+            });
     }
 }

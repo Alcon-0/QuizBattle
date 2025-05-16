@@ -5,10 +5,12 @@ using Application.DTOs;
 using Application.DTOs.Questions;
 using Application.Interfaces.Services;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/quizzes")]
     public class QuizzesController : ControllerBase
