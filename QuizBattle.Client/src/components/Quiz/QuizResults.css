@@ -1,0 +1,30 @@
+.completed-container {
+  padding: var(--spacing-xl);
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.completed-container h2 {
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-lg);
+}
+
+.score-text {
+  margin: var(--spacing-xl) 0;
+  font-size: var(--font-size-lg);
+}
+
+.score-highlight {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: var(--font-size-xl);
+}

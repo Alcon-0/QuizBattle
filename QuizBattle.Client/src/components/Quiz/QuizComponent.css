@@ -1,0 +1,33 @@
+.quiz-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.quiz-header {
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
+.quiz-header h2 {
+  color: var(--secondary-color);
+}
+
+.meta-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+}
+
+.timer {
+  font-size: 30px;
+  color: var(--incorrect-color);
+  font-weight: bold;
+}
+
+.score {
+  color: var(--primary-color);
+  font-weight: bold;
+}
