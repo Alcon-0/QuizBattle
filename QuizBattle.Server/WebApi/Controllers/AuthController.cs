@@ -70,6 +70,11 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid credentials");
         }
 
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return Unauthorized("Invalid credentials");
+        }
+
         var result = _userManager.PasswordHasher.VerifyHashedPassword(
             user,
             user.PasswordHash,
@@ -83,14 +88,14 @@ public class AuthController : ControllerBase
 
         var authClaims = new List<Claim>
         {
-            new(ClaimTypes.Name, user.UserName),
-            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.UserName ?? string.Empty),
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
         var authSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_configuration["JWT:Secret"])
+            Encoding.UTF8.GetBytes(_configuration["JWT:Secret"] ?? throw new InvalidOperationException("JWT secret is not configured"))
         );
 
         var token = new JwtSecurityToken(
@@ -105,8 +110,8 @@ public class AuthController : ControllerBase
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             Expiration = token.ValidTo,
-            Username = user.UserName,
-            Email = user.Email
+            Username = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
         });
     }
 

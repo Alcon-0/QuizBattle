@@ -25,10 +25,33 @@ namespace WebApi.Controllers
             _quizService = quizService;
             _mongoImageService = mongoImageService;
         }
-        
+
         #region Quiz Endpoints
-        
+
+        /// <summary>
+        /// Creates a new quiz
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/quizzes
+        ///     {
+        ///         "title": "Geography Quiz",
+        ///         "description": "Test your geography knowledge",
+        ///         "category": "Geography",
+        ///         "questions": []
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="createQuizDto">Quiz creation data</param>
+        /// <returns>Newly created quiz</returns>
+        /// <response code="201">Returns the newly created quiz</response>
+        /// <response code="400">If the request data is invalid</response>
+        /// <response code="401">Unauthorized - User is not authenticated</response>
         [HttpPost]
+        [ProducesResponseType(typeof(QuizDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<QuizDto>> CreateQuiz([FromBody] CreateQuizDto createQuizDto)
         {
             var quiz = await _quizService.CreateQuizAsync(createQuizDto);
@@ -51,6 +74,14 @@ namespace WebApi.Controllers
             return Ok(quizzes);
         }
 
+        /// <summary>
+        /// Gets a quiz by ID
+        /// </summary>
+        /// <param name="id">The ID of the quiz to retrieve</param>
+        /// <returns>Requested quiz</returns>
+        /// <response code="200">Returns the requested quiz</response>
+        /// <response code="404">If quiz is not found</response>
+        /// <response code="401">If user is not authenticated</response>
         [HttpGet("{id}")]
         public async Task<ActionResult<QuizDto>> GetQuizById(Guid id)
         {
@@ -79,7 +110,35 @@ namespace WebApi.Controllers
             return Ok(question);
         }
 
+        /// <summary>
+        /// Adds a new question to a quiz
+        /// </summary>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/quizzes/{quizId}/questions
+        ///     {
+        ///         "text": "What is the capital of France?",
+        ///         "options": [
+        ///             {"text": "Paris", "isCorrect": true},
+        ///             {"text": "London", "isCorrect": false},
+        ///             {"text": "Berlin", "isCorrect": false}
+        ///         ]
+        ///     }
+        ///
+        /// </remarks>
+        /// <param name="quizId">The ID of the quiz to add question to</param>
+        /// <param name="createQuestionDto">Question data</param>
+        /// <returns>Newly created question</returns>
+        /// <response code="201">Returns the newly created question</response>
+        /// <response code="400">If the request data is invalid or missing options</response>
+        /// <response code="401">Unauthorized - User is not authenticated</response>
+        /// <response code="404">If quiz is not found</response>
         [HttpPost("{quizId}/questions")]
+        [ProducesResponseType(typeof(QuestionDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<QuestionDto>> AddQuestionToQuiz(
             Guid quizId,
             [FromBody] CreateQuestionDto createQuestionDto)

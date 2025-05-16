@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
@@ -64,7 +65,7 @@ public static class ServiceExtensions
                 ValidAudience = configuration["JWT:ValidAudience"],
                 ValidIssuer = configuration["JWT:ValidIssuer"],
                 IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(configuration["JWT:Secret"]))
+                    Encoding.UTF8.GetBytes(configuration["JWT:Secret"] ?? throw new ArgumentNullException("JWT:Secret", "JWT secret key is not configured")))
             };
         });
 
@@ -97,10 +98,25 @@ public static class ServiceExtensions
 
         // Swagger
         services.AddEndpointsApiExplorer();
+        // Swagger configuration
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Quiz App API", Version = "v1" });
+            c.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Quiz App API",
+                Version = "v1",
+                Description = "API for creating and managing quizzes and questions"
+            });
 
+            // Add XML comments for better documentation
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+            {
+                c.IncludeXmlComments(xmlPath);
+            }
+
+            // JWT Bearer Authentication definition
             var jwtSecurityScheme = new OpenApiSecurityScheme
             {
                 Scheme = "bearer",
@@ -108,7 +124,9 @@ public static class ServiceExtensions
                 Name = "Authorization",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,
-                Description = "Put **_ONLY_** your JWT Bearer token below.",
+                Description = "JWT Authorization header using the Bearer scheme.\n\n" +
+                             "Enter your token in the text input below.\n\n" +
+                             "Example: \"Bearer {token}\"",
 
                 Reference = new OpenApiReference
                 {
