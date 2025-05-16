@@ -3,6 +3,7 @@ using Application.Interfaces.Services;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using WebApi.Middleware;
@@ -19,20 +20,39 @@ public static class ServiceExtensions
         // Database
         services.AddDbContext<AppDbContext>(options =>
         {
-            options.UseSqlite(configuration.GetConnectionString("QuizBattleDb"));
+            options.UseSqlServer(
+                configuration.GetConnectionString("QuizApp"),
+                sqlOptions => 
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                });
         });
 
         // Application Layer
-        services.AddScoped<IQuizRepository>(provider => 
-            new QuizRepository(provider.GetRequiredService<AppDbContext>()));
-    
-        services.AddScoped<IQuestionRepository>(provider => 
-            new QuestionRepository(provider.GetRequiredService<AppDbContext>()));
-    
-        services.AddScoped<IQuizBattleRepository>(provider => 
-            new QuizBattleRepository(provider.GetRequiredService<AppDbContext>()));
+        services.AddScoped<IQuizRepository, QuizRepository>();
+        services.AddScoped<IQuestionRepository, QuestionRepository>();
         
         services.AddScoped<IQuizService, QuizService>();
+
+        services.Configure<MongoDBSettings>(
+            configuration.GetSection("MongoDB"));
+
+        // Add MongoDB services
+        services.AddSingleton<MongoImageService>();
+        // Cors
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", builder =>
+            {
+                builder.WithOrigins("http://localhost:3000")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();;
+            });
+        });
 
         // API
         services.AddControllers();
@@ -44,12 +64,6 @@ public static class ServiceExtensions
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Quiz App API", Version = "v1" });
         });
 
-        return services;
-    }
-
-    public static IServiceCollection AddSignalRServices(this IServiceCollection services)
-    {
-        services.AddSignalR();
         return services;
     }
 }
