@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# QuizBattle
-=======
 # Quiz Battle Application 🎮📚
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -28,4 +25,3 @@ Prerequisites:
 2. Start all services:
 <pre> ```docker-compose up --build ``` </pre>
 <pre> ```cd QuizBattle.Client npm run preview ``` </pre>
->>>>>>> 55e16f3 (feat: Add README file with project description and setup instructions)
