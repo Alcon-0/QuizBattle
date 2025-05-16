@@ -37,6 +37,13 @@
   gap: 1.5rem;
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+
 .nav-link {
   color: #ecf0f1;
   text-decoration: none;

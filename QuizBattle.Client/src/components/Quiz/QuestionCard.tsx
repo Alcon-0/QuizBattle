@@ -1,5 +1,5 @@
 import React from 'react';
-import { QuestionDto } from '../../api/types';
+import { QuestionDto } from '../../api/types/quiz';
 import OptionButton from './OptionButton';
 import './QuestionCard.css';
 

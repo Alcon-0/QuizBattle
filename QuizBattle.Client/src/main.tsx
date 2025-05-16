@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { RouterProvider } from 'react-router-dom';
 import { store } from './store/store';
 import { router } from './routes';
+import { AuthProvider } from './context/AuthContext';
 import './styles/index.css';
 
 const container = document.getElementById('root');
@@ -17,7 +18,9 @@ const root = createRoot(container);
 root.render(
   <StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </Provider>
   </StrictMode>
 );

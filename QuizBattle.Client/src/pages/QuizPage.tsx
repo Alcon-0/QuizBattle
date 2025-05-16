@@ -1,54 +1,33 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import QuizStart from '../components/Quiz/QuizStart';
+// pages/Quiz/QuizPage.tsx
+import { useParams } from 'react-router-dom';
 import QuizComponent from '../components/Quiz/QuizComponent';
 import { useGetQuizQuestionsQuery, useGetQuizByIdQuery } from '../api';
-import { useState } from 'react';
+import { useAppSelector } from '../hooks/redux';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const QuizPage = () => {
   const { quizId } = useParams<{ quizId: string }>();
-  const [quizStarted, setQuizStarted] = useState(false);
-  const navigate = useNavigate();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   
   const { data: quizData } = useGetQuizByIdQuery(quizId || '', {
-    skip: !quizId,
+    skip: !quizId || !isAuthenticated
   });
   
-  const { data: questions = [] } = useGetQuizQuestionsQuery(quizId || '', {
-    skip: !quizId,
-  });
+  const { data: questions = [], isLoading, error } = useGetQuizQuestionsQuery(
+    quizId || '', 
+    { skip: !quizId || !isAuthenticated }
+  );
 
-  const handleStartQuiz = () => {
-    setQuizStarted(true);
-  };
-
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  const handleQuizComplete = () => {
-    navigate('/');
-  };
-
-  if (!quizId) {
-    return <div>Quiz ID is missing</div>;
-  }
-
-  if (!quizStarted) {
-    return (
-      <QuizStart 
-        quizTitle={quizData?.title || ''}
-        questionCount={questions.length}
-        onStart={handleStartQuiz}
-        onBack={handleBack}
-      />
-    );
-  }
+  if (!isAuthenticated) return null;
+  if (!quizId) return <div>Quiz ID is missing</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <div>Error loading quiz</div>;
 
   return (
     <QuizComponent 
       questions={questions}
-      quizTitle={quizData?.title || ''}
-      onComplete={handleQuizComplete}
+      quizId={quizId}
+      quizTitle={quizData?.title || 'Quiz'}
     />
   );
 };

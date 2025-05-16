@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { QuestionDto } from '../../api/types';
+import { useNavigate } from 'react-router-dom';
+import { QuestionDto } from '../../api/types/quiz';
 import QuestionCard from './QuestionCard';
 import QuizResults from './QuizResults';
 import './QuizComponent.css';
 
 interface QuizComponentProps {
   questions: QuestionDto[];
-  quizTitle: string;
-  onComplete: () => void;
+  quizId: string;
+  quizTitle?: string;
 }
 
 const QuizComponent: React.FC<QuizComponentProps> = ({ 
   questions, 
-  quizTitle, 
-  onComplete 
+  quizId,
+  quizTitle = 'Quiz'
 }) => {
+  const navigate = useNavigate();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -63,12 +65,22 @@ const QuizComponent: React.FC<QuizComponentProps> = ({
     }
   };
 
+  const handleQuizComplete = () => {
+    navigate('/', {
+      state: {
+        fromQuiz: true,
+        quizId,
+        score,
+        totalQuestions: questions.length
+      }
+    });
+  };
+
   if (quizCompleted) {
     return (
       <QuizResults 
         score={score} 
-        totalQuestions={questions.length} 
-        onComplete={onComplete}
+        totalQuestions={questions.length}
       />
     );
   }

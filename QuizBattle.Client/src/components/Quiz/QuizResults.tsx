@@ -1,39 +1,43 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Button from '../common/Button';
 import './QuizResults.css';
 
 interface QuizResultsProps {
   score: number;
   totalQuestions: number;
-  onComplete?: () => void;
+  quizId?: string;
 }
 
 const QuizResults: React.FC<QuizResultsProps> = ({ 
   score, 
   totalQuestions,
-  onComplete 
+  quizId 
 }) => {
+  const navigate = useNavigate();
+
+  const handleComplete = () => {
+    navigate('/', { 
+      state: { 
+        fromQuiz: true,
+        quizId,
+        score 
+      } 
+    });
+  };
+
   return (
     <div className="completed-container">
       <h2>Quiz Completed!</h2>
       <p className="score-text">
         Your score: <span className="score-highlight">{score}</span> out of {totalQuestions}
       </p>
-      {onComplete ? (
-        <Button 
-          variant="primary"
-          onClick={onComplete}
-        >
-          Back to Main Menu
-        </Button>
-      ) : (
-        <Link to="/">
-          <Button variant="primary">
-            Back to Main Menu
-          </Button>
-        </Link>
-      )}
+      <Button 
+        variant="primary"
+        onClick={handleComplete}
+      >
+        Back to Main Menu
+      </Button>
     </div>
   );
 };

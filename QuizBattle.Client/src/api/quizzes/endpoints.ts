@@ -1,5 +1,5 @@
 import { baseApi } from '../baseApi';
-import { QuizDto, CreateQuizDto } from '../types';
+import { QuizDto, CreateQuizDto } from '../types/quiz';
 
 export const quizzesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
