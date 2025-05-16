@@ -40,7 +40,11 @@ const LoginForm = () => {
         dispatch(setCredentials(response));
         navigate(from, { replace: true });
       } catch (err) {
-        setStatus(err.data?.message || 'Login failed. Please check your credentials.');
+        if (err && typeof err === 'object' && 'data' in err && typeof (err as any).data === 'object') {
+          setStatus((err as any).data?.message || 'Login failed. Please check your credentials.');
+        } else {
+          setStatus('Login failed. Please check your credentials.');
+        }
       } finally {
         setSubmitting(false);
       }
