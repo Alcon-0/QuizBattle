@@ -26,11 +26,6 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
     {
-        if (!Request.Cookies.ContainsKey("auth-consent"))
-        {
-            return BadRequest("Cookie consent required for authentication");
-        }
-
         if (!IsSha256Hash(registerDto.Password))
         {
             return BadRequest("Password must be sent as SHA-256 hash");
