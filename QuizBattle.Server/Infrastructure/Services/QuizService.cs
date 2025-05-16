@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Application.DTOs;
+using Application.DTOs.Questions;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
-using Domain.Enums;
-using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services;
 
@@ -15,19 +14,16 @@ public class QuizService : IQuizService
 {
     private readonly IQuizRepository _quizRepository;
     private readonly IQuestionRepository _questionRepository;
-    private readonly IQuizBattleRepository _battleRepository;
 
     public QuizService(
         IQuizRepository quizRepository,
-        IQuestionRepository questionRepository,
-        IQuizBattleRepository battleRepository)
+        IQuestionRepository questionRepository)
     {
         _quizRepository = quizRepository;
         _questionRepository = questionRepository;
-        _battleRepository = battleRepository;
     }
 
-    public async Task<QuizDto> CreateQuizAsync(CreateQuizDto createQuizDto)
+    public async Task<QuizDto> CreateQuizAsync(CreateQuizDto createQuizDto, string? imageId = null)
     {
         var quiz = new Quiz
         {
@@ -37,15 +33,17 @@ public class QuizService : IQuizService
         };
 
         await _quizRepository.AddAsync(quiz);
-        
+
         return new QuizDto(
             quiz.Id,
             quiz.Title,
             quiz.Description,
-            quiz.CreatedAt);
+            quiz.CreatedAt,
+            quiz.MongoCoverImageId);
     }
 
-    public async Task<QuestionDto> AddQuestionToQuizAsync(Guid quizId, CreateQuestionDto createQuestionDto)
+    public async Task<QuestionDto> AddQuestionToQuizAsync(
+        Guid quizId, CreateQuestionDto createQuestionDto, string? imageId = null)
     {
         var quiz = await _quizRepository.GetByIdAsync(quizId);
         if (quiz == null)
@@ -56,18 +54,33 @@ public class QuizService : IQuizService
             Text = createQuestionDto.Text,
             CorrectAnswerIndex = createQuestionDto.CorrectAnswerIndex,
             QuizId = quizId,
-            Options = createQuestionDto.Options
-                .Select(o => new AnswerOption { Text = o.Text })
-                .ToList()
+            ImageId = imageId
         };
 
         await _questionRepository.AddAsync(question);
 
+        for (int i = 0; i < createQuestionDto.Options.Count; i++)
+        {
+            var option = new AnswerOption
+            {
+                Id = i,
+                Text = createQuestionDto.Options[i].Text,
+                QuestionId = question.Id
+            };
+            question.Options.Add(option);
+        }
+
+        await _questionRepository.UpdateAsync(question);
+
         return new QuestionDto(
             question.Id,
             question.Text,
-            question.Options.Select(o => new AnswerOptionDto(o.Id, o.Text)).ToList(),
-            question.CorrectAnswerIndex);
+            question.Options
+                .OrderBy(o => o.Id)
+                .Select(o => new AnswerOptionDto(o.Id, o.Text))
+                .ToList(),
+            question.CorrectAnswerIndex,
+            question.ImageId);
     }
 
     public async Task<IEnumerable<QuizDto>> GetAllQuizzesAsync()
@@ -77,7 +90,8 @@ public class QuizService : IQuizService
             q.Id,
             q.Title,
             q.Description,
-            q.CreatedAt));
+            q.CreatedAt,
+            q.MongoCoverImageId));
     }
 
     public async Task<QuizDto> GetQuizByIdAsync(Guid id)
@@ -90,130 +104,92 @@ public class QuizService : IQuizService
             quiz.Id,
             quiz.Title,
             quiz.Description,
-            quiz.CreatedAt);
+            quiz.CreatedAt,
+            quiz.MongoCoverImageId);
     }
 
-    public async Task<QuizBattleDto> StartBattleAsync(Guid quizId, string player1Id, string player2Id)
+    public async Task<IEnumerable<QuestionDto>> GetQuizQuestionsAsync(Guid quizId)
     {
-        var quiz = await _quizRepository.GetByIdAsync(quizId);
+        var quiz = await _quizRepository.GetByIdWithQuestionsAsync(quizId);
         if (quiz == null)
             throw new KeyNotFoundException($"Quiz with ID {quizId} not found");
 
-        var battle = new QuizBattle
-        {
-            QuizId = quizId,
-            FirstPlayerId = player1Id,
-            SecondPlayerId = player2Id,
-            Status = BattleStatus.WaitingForPlayers,
-            StartedAt = DateTime.UtcNow,
-            FirstPlayerScore = 0,
-            SecondPlayerScore = 0
-        };
-
-        await _battleRepository.AddAsync(battle);
-
-        return new QuizBattleDto(
-            battle.Id,
-            battle.QuizId,
-            battle.FirstPlayerId,
-            battle.SecondPlayerId,
-            battle.FirstPlayerScore,
-            battle.SecondPlayerScore,
-            battle.Status);
+        return quiz.Questions.Select(q => new QuestionDto(
+            q.Id,
+            q.Text,
+            q.Options.Select(o => new AnswerOptionDto(o.Id, o.Text)).ToList(),
+            q.CorrectAnswerIndex,
+            q.ImageId));
     }
 
-  public async Task<QuizBattleDto> SubmitAnswerAsync(Guid battleId, string playerId, Guid questionId, int answerIndex)
+    public async Task UpdateQuestionAsync(Guid quizId, Guid questionId, UpdateQuestionDto updateQuestionDto)
     {
-        var battle = await _battleRepository.GetByIdWithAnswersAsync(battleId);
-        if (battle == null)
-            throw new KeyNotFoundException($"Battle with ID {battleId} not found");
+        var question = await _questionRepository.GetByIdWithOptionsAsync(questionId);
+        if (question == null || question.QuizId != quizId)
+            throw new KeyNotFoundException($"Question with ID {questionId} not found in quiz {quizId}");
 
-        if (battle.Status != BattleStatus.InProgress)
-            throw new InvalidOperationException("Battle is not in progress");
+        // Update question properties
+        question.Text = updateQuestionDto.Text;
+        question.CorrectAnswerIndex = updateQuestionDto.CorrectAnswerIndex;
 
-        var question = await _questionRepository.GetByIdAsync(questionId);
-        if (question == null)
-            throw new KeyNotFoundException($"Question with ID {questionId} not found");
+        // Remove existing options
+        question.Options.Clear();
 
-        // Check if player has already answered this question
-        if (battle.PlayerAnswers.Any(pa => pa.QuestionId == questionId && pa.PlayerId == playerId))
-            throw new InvalidOperationException("Player has already answered this question");
-
-        bool isCorrect = answerIndex == question.CorrectAnswerIndex;
-
-        // Update player score
-        if (battle.FirstPlayerId == playerId)
+        // Add new options with explicit IDs
+        for (int i = 0; i < updateQuestionDto.Options.Count; i++)
         {
-            battle.FirstPlayerScore += isCorrect ? 1 : 0;
-        }
-        else if (battle.SecondPlayerId == playerId)
-        {
-            battle.SecondPlayerScore += isCorrect ? 1 : 0;
-        }
-        else
-        {
-            throw new UnauthorizedAccessException("Player is not part of this battle");
+            question.Options.Add(new AnswerOption
+            {
+                Id = i,
+                Text = updateQuestionDto.Options[i].Text,
+                QuestionId = questionId
+            });
         }
 
-        // Record the answer
-        battle.PlayerAnswers.Add(new PlayerAnswer
-        {
-            BattleId = battleId,
-            PlayerId = playerId,
-            QuestionId = questionId,
-            AnswerIndex = answerIndex,
-            IsCorrect = isCorrect,
-            AnsweredAt = DateTime.UtcNow
-        });
-
-        // Check if battle is complete
-        var quiz = await _quizRepository.GetByIdAsync(battle.QuizId);
-        var totalQuestions = quiz?.Questions.Count ?? 0;
-        
-        // Count unique questions answered by both players
-        var player1Answers = battle.PlayerAnswers
-            .Where(pa => pa.PlayerId == battle.FirstPlayerId)
-            .Select(pa => pa.QuestionId)
-            .Distinct()
-            .Count();
-
-        var player2Answers = battle.PlayerAnswers
-            .Where(pa => pa.PlayerId == battle.SecondPlayerId)
-            .Select(pa => pa.QuestionId)
-            .Distinct()
-            .Count();
-
-        if (player1Answers >= totalQuestions && player2Answers >= totalQuestions)
-        {
-            battle.Status = BattleStatus.Completed;
-            battle.FinishedAt = DateTime.UtcNow;
-        }
-
-        await _battleRepository.UpdateAsync(battle);
-
-        return new QuizBattleDto(
-            battle.Id,
-            battle.QuizId,
-            battle.FirstPlayerId,
-            battle.SecondPlayerId,
-            battle.FirstPlayerScore,
-            battle.SecondPlayerScore,
-            battle.Status);
+        await _questionRepository.UpdateAsync(question);
     }
 
-    public async Task<QuizBattleDto> GetBattleByIdAsync(Guid id)
+    public async Task RemoveQuestionFromQuizAsync(Guid quizId, Guid questionId)
     {
-        var battle = await _battleRepository.GetByIdWithAnswersAsync(id);
-        if (battle == null)
-            throw new KeyNotFoundException($"Battle with ID {id} not found");
+        var question = await _questionRepository.GetByIdWithQuizAsync(questionId);
 
-        return new QuizBattleDto(
-            battle.Id,
-            battle.QuizId,
-            battle.FirstPlayerId,
-            battle.SecondPlayerId,
-            battle.FirstPlayerScore,
-            battle.SecondPlayerScore,
-            battle.Status);
+        if (question == null || question.QuizId != quizId)
+            throw new KeyNotFoundException($"Question with ID {questionId} not found in quiz {quizId}");
+
+        await _questionRepository.DeleteAsync(question.Id);
+    }
+
+    public async Task<QuestionDto> GetQuestionByIdAsync(Guid quizId, Guid questionId)
+    {
+        var question = await _questionRepository.GetByIdWithQuizAsync(questionId);
+        if (question == null || question.QuizId != quizId)
+            throw new KeyNotFoundException($"Question with ID {questionId} not found in quiz {quizId}");
+
+        return new QuestionDto(
+            question.Id,
+            question.Text,
+            question.Options.Select(o => new AnswerOptionDto(o.Id, o.Text)).ToList(),
+            question.CorrectAnswerIndex,
+            question.ImageId);
+    }
+
+    public async Task SetQuestionImageAsync(Guid quizId, Guid questionId, string imageId)
+    {
+        var question = await _questionRepository.GetByIdWithQuizAsync(questionId);
+        if (question == null || question.QuizId != quizId)
+            throw new KeyNotFoundException($"Question with ID {questionId} not found in quiz {quizId}");
+
+        question.ImageId = imageId;
+        await _questionRepository.UpdateAsync(question);
+    }
+
+    public async Task SetQuizCoverImageAsync(Guid id, string imageId)
+    {
+        var quiz = await _quizRepository.GetByIdAsync(id);
+        if (quiz == null)
+            throw new KeyNotFoundException($"Quiz with ID {id} not found");
+
+        quiz.MongoCoverImageId = imageId;
+        await _quizRepository.UpdateAsync(quiz);
     }
 }

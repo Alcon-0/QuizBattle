@@ -11,7 +11,6 @@ public class AppDbContext : DbContext
     public DbSet<Quiz> Quizzes { get; set; }
     public DbSet<Question> Questions { get; set; }
     public DbSet<AnswerOption> AnswerOptions { get; set; }
-    public DbSet<QuizBattle> QuizBattles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,15 +25,12 @@ public class AppDbContext : DbContext
             .WithOne(o => o.Question)
             .HasForeignKey(o => o.QuestionId)
             .OnDelete(DeleteBehavior.Cascade);
-        
-        modelBuilder.Entity<PlayerAnswer>()
-            .HasOne(pa => pa.Battle)
-            .WithMany(b => b.PlayerAnswers)
-            .HasForeignKey(pa => pa.BattleId);
 
-        modelBuilder.Entity<PlayerAnswer>()
-            .HasOne(pa => pa.Question)
-            .WithMany()
-            .HasForeignKey(pa => pa.QuestionId);
+        modelBuilder.Entity<AnswerOption>()
+            .HasKey(o => new { o.QuestionId, o.Id });
+
+        modelBuilder.Entity<AnswerOption>()
+            .Property(o => o.Id)
+            .ValueGeneratedNever();
     }
 }
