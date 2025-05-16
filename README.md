@@ -58,6 +58,9 @@ npm run build
 npm run preview
 ```
 
+Api Swagger Documentation listend on:
+http://localhost:5028/swagger
+
 <h2 id="routes">📍 API Endpoints</h2>
 
 
