@@ -1,4 +1,3 @@
-// pages/Quiz/QuizPage.tsx
 import { useParams } from 'react-router-dom';
 import QuizComponent from '../components/Quiz/QuizComponent';
 import { useGetQuizQuestionsQuery, useGetQuizByIdQuery } from '../api';
@@ -26,7 +25,6 @@ const QuizPage = () => {
   return (
     <QuizComponent 
       questions={questions}
-      quizId={quizId}
       quizTitle={quizData?.title || 'Quiz'}
     />
   );
