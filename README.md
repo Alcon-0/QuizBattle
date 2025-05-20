@@ -60,6 +60,11 @@ npm run preview
 
 Api Swagger Documentation listend on:
 http://localhost:5028/swagger
+TypeDocs generation commnad:
+```bash 
+npm run docs
+```
+
 
 <h2 id="routes">📍 API Endpoints</h2>
 
